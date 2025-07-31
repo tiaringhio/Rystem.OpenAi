@@ -42,25 +42,13 @@ namespace Rystem.PlayFramework
             {
                 return dictionaryValue;
             }
-            else
-            {
-                if (Properties.ContainsKey(key))
-                    Properties[key] = property!;
-                else
-                    Properties.Add(key, property!);
-                return property!;
-            }
+
+            Properties[key] = property!;
+            return property!;
         }
         public bool TrySetProperty<T>(object key, T value)
         {
-            if (Properties.ContainsKey(key))
-            {
-                return false;
-            }
-            else
-            {
-                return Properties.TryAdd(key, value!);
-            }
+            return !Properties.ContainsKey(key) && Properties.TryAdd(key, value!);
         }
         public bool SetProperty<T>(object key, T value)
         {

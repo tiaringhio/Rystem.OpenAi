@@ -7,7 +7,7 @@ namespace Rystem.PlayFramework
         [JsonPropertyName("rk")]
         public required string RequestKey { get; set; }
         [JsonPropertyName("id")]
-        public string Id { get; set; } = Guid.NewGuid().ToString();
+        public string Id { get; set; } = Guid.CreateVersion7().ToString();
         [JsonPropertyName("name")]
         public string? Name { get; set; }
         [JsonPropertyName("functionName")]

@@ -18,7 +18,7 @@ namespace Rystem.PlayFramework
         {
             if (context.CreateNewDefaultChatClient != null)
             {
-                var lastMessage = context.Responses.Where(x => x.Message != null).LastOrDefault()?.Message;
+                var lastMessage = context.Responses.LastOrDefault(x => x.Message != null)?.Message;
                 if (lastMessage != null)
                 {
                     var chatClient = context.CreateNewDefaultChatClient();
@@ -28,7 +28,7 @@ namespace Rystem.PlayFramework
                         avoidableScenes.AddRange(requestSettings.ScenesToAvoid);
                     var scenes = _playHandler.GetScenes(avoidableScenes);
                     chatClient = chatClient
-                        .AddSystemMessage($"I'm putting in assistant message the last message you provide for a user request. You need only understand if assistant has responded to the user or not. If it does respond with the word 'Yes' otherwise with the word 'No'. Do not provide further information, only these two words are allowed responses. You can say 'No' if you think that this functions can help you to get further information for the task, the functions with name and descriptions will be passed as next system messages.");
+                        .AddSystemMessage("I'm putting in assistant message the last message you provide for a user request. You need only understand if assistant has responded to the user or not. If it does respond with the word 'Yes' otherwise with the word 'No'. Do not provide further information, only these two words are allowed responses. You can say 'No' if you think that this functions can help you to get further information for the task, the functions with name and descriptions will be passed as next system messages.");
                     foreach (var scene in scenes)
                     {
                         var currentScene = _sceneFactory.Create(scene);
