@@ -30,11 +30,13 @@
         <When Condition=" '$(Configuration)'=='Debug' ">
             <ItemGroup>
                 <ProjectReference Include="..\Rystem.OpenAi\Rystem.OpenAi.csproj" />
+                <PackageReference Include="OneOf" Version="3.0.271" />
             </ItemGroup>
         </When>
         <When Condition=" '$(Configuration)'!='Debug' ">
             <ItemGroup>
                 <PackageReference Include="Rystem.OpenAi" Version="10.0.4" />
+                <PackageReference Include="OneOf" Version="3.0.271" />
             </ItemGroup>
         </When>
     </Choose>

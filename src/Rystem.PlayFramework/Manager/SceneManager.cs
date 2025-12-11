@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.Collections.Concurrent;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
@@ -22,7 +23,7 @@ namespace Rystem.PlayFramework
         private readonly SceneManagerSettings? _settings;
         private readonly IPlanner? _planner;
         private readonly ISummarizer? _summarizer;
-
+        
         public SceneManager(IServiceProvider serviceProvider,
             IHttpContextAccessor httpContextAccessor,
             IFactory<IOpenAi> openAiFactory,
@@ -48,6 +49,8 @@ namespace Rystem.PlayFramework
             _summarizer = summarizer;
         }
         private readonly Dictionary<string, string> _cacheValue = [];
+        private static readonly ConcurrentDictionary<Type, (PropertyInfo? ValueProperty, PropertyInfo? IndexProperty, PropertyInfo[] AsTProperties)> SOneOfCache = new();
+        
         private async ValueTask<IOpenAiChat> GetChatClientAsync(string startingMessage, SceneRequestSettings requestSettings, CancellationToken cancellationToken)
         {
             var chatClient = _openAiFactory.Create(_settings?.OpenAi.Name)?.Chat;
@@ -486,7 +489,9 @@ namespace Rystem.PlayFramework
                     return string.Empty;
                 if (response.IsT0)
                 {
-                    return response.CastT0.IsPrimitive() ? response.CastT0.ToString() : response.CastT0.ToJson();
+                    return response.CastT0.IsPrimitive()
+                        ? response.CastT0.ToString()
+                        : UnwrapOneOfValue(response.CastT0).ToJson();
                 }
 
                 return response.CastT1.Message;
@@ -867,6 +872,46 @@ Be concise but complete. Do not mention the tools or scenes you used - just answ
                 PopulateTokenCounts(finalSceneResponse, finalResponse.Usage);
             }
             yield return YieldAndTrack(context, finalSceneResponse);
+        }
+       
+        /// <summary>
+        /// questo potrebbe essere un metodo extension in futuro
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        private static object? UnwrapOneOfValue(object? value)
+        {
+            var type = value?.GetType();
+            if (type is null || !type.IsGenericType || !type.GetGenericTypeDefinition().Name.StartsWith("OneOf`", StringComparison.Ordinal))
+            {
+                return value;
+            }
+
+            var (valueProperty, indexProperty, asTProperties) = SOneOfCache.GetOrAdd(type, t =>
+            {
+                var props = t.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                var valueProp = props.FirstOrDefault(p => p.Name == "Value");
+                var indexProp = props.FirstOrDefault(p => p.Name == "Index");
+                var asTProps = props
+                    .Where(p => p.Name.StartsWith("AsT", StringComparison.OrdinalIgnoreCase))
+                    .OrderBy(p => p.Name)
+                    .ToArray();
+                return (valueProp, indexProp, asTProps);
+            });
+
+            if (valueProperty != null)
+            {
+                return valueProperty.GetValue(value);
+            }
+
+            if (indexProperty?.GetValue(value) is not (int index and > 0))
+            {
+                return value;
+            }
+
+            return index - 1 < asTProperties.Length
+                ? asTProperties[index - 1].GetValue(value)
+                : value;
         }
     }
 }
